@@ -5,4 +5,4 @@ The application offers a seamless experience by allowing users to either upload 
 A key highlight of the application is its visual-first approach. Using a radar chart, users can analyze multiple dimensions of performance—such as liquidity, profitability, and leverage—in a single view. This makes it easier to identify strengths and weaknesses at a glance.
 Each section reveals detailed ratios along with their formulas, computed values, and performance status (e.g., Strong, Moderate, Weak), making the analysis both transparent and educational.
 The app also includes a smart insights engine that interprets the data and highlights key strengths, potential risks, and actionable suggestions. This bridges the gap between raw analysis and decision-making.
-Built using Python, Streamlit, Pandas, Plotly, and ReportLab, ChimeK combines analytical depth with a clean and modern user interface.
+Built using Python, Streamlit, Pandas, Plotly, and ReportLab, FinHealth Analyzer combines analytical depth with a clean and modern user interface.
