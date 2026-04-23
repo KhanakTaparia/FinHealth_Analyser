@@ -7,7 +7,7 @@ import tempfile
 
 st.set_page_config(page_title="FinHealth Analyzer", layout="wide")
 
-# ---------------- STYLE ----------------
+# ---------- STYLE ----------
 st.markdown("""
 <style>
 .hero {
@@ -27,7 +27,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# ---------------- HERO ----------------
+# ---------- HEADER ----------
 st.markdown("""
 <div class='hero'>
 <h1>🔔 FinHealth Analyzer</h1>
@@ -35,15 +35,26 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-# ---------------- INPUT MODE ----------------
-mode = st.radio("📌 Choose Input Method:", ["📂 Upload Excel", "✍️ Manual Entry"])
-
+# ---------- FUNCTIONS ----------
 def safe_div(a, b):
-    return a / b if b != 0 else 0
+    try:
+        return a / b if b != 0 else 0
+    except:
+        return 0
+
+def status(val, good, moderate):
+    if val >= good:
+        return "🟢 Strong"
+    elif val >= moderate:
+        return "🟡 Moderate"
+    else:
+        return "🔴 Weak"
+
+# ---------- INPUT ----------
+mode = st.radio("📌 Choose Input Method:", ["📂 Upload Excel", "✍️ Manual Entry"])
 
 data = {}
 
-# ---------------- INPUT ----------------
 if mode == "📂 Upload Excel":
     file = st.file_uploader("📤 Upload Excel File", type=["xlsx"])
     if file:
@@ -51,7 +62,7 @@ if mode == "📂 Upload Excel":
         data = df.iloc[0].to_dict()
         st.success("✅ File uploaded successfully!")
     else:
-        st.info("Upload a file or switch to manual entry ✍️")
+        st.info("Upload file or switch to manual entry ✍️")
 
 else:
     st.subheader("✍️ Enter Financial Data")
@@ -59,16 +70,18 @@ else:
     col1, col2 = st.columns(2)
 
     with col1:
-        data["Revenue"] = st.number_input("💰 Revenue", 100000.0)
-        data["Profit"] = st.number_input("📈 Net Profit", 10000.0)
-        data["Current Assets"] = st.number_input("🏦 Current Assets", 50000.0)
-        data["Current Liabilities"] = st.number_input("📉 Current Liabilities", 25000.0)
+        data["Revenue"] = st.number_input("💰 Revenue", value=100000.0)
+        data["Profit"] = st.number_input("📈 Net Profit", value=10000.0)
+        data["Current Assets"] = st.number_input("🏦 Current Assets", value=50000.0)
+        data["Current Liabilities"] = st.number_input("📉 Current Liabilities", value=25000.0)
 
     with col2:
-        data["Debt"] = st.number_input("⚖️ Debt", 40000.0)
-        data["Equity"] = st.number_input("📊 Equity", 60000.0)
+        data["Debt"] = st.number_input("⚖️ Debt", value=40000.0)
+        data["Equity"] = st.number_input("📊 Equity", value=60000.0)
+        data["Inventory"] = st.number_input("📦 Inventory", value=10000.0)
+        data["Total Assets"] = st.number_input("🏢 Total Assets", value=120000.0)
 
-# ---------------- PROCESS ----------------
+# ---------- PROCESS ----------
 if data:
 
     revenue = data.get("Revenue", 0)
@@ -77,13 +90,18 @@ if data:
     cl = data.get("Current Liabilities", 0)
     debt = data.get("Debt", 0)
     equity = data.get("Equity", 0)
+    inventory = data.get("Inventory", 0)
+    assets = data.get("Total Assets", 1)
 
-    # Core Ratios
+    # ---------- RATIOS ----------
     current_ratio = safe_div(ca, cl)
+    quick_ratio = safe_div(ca - inventory, cl)
     profit_margin = safe_div(profit, revenue)
+    roe = safe_div(profit, equity)
     de_ratio = safe_div(debt, equity)
+    debt_ratio = safe_div(debt, assets)
 
-    # ---------------- SCORE ----------------
+    # ---------- SCORE ----------
     score = 0
     if current_ratio > 1.5: score += 30
     elif current_ratio > 1: score += 15
@@ -94,182 +112,107 @@ if data:
     if de_ratio < 1: score += 40
     elif de_ratio < 2: score += 20
 
-    # ---------------- DASHBOARD ----------------
+    # ---------- DASHBOARD ----------
     st.write("## 📊 Financial Snapshot")
 
-    col1, col2, col3 = st.columns(3)
+    c1, c2, c3 = st.columns(3)
 
-    col1.markdown(f"<div class='card'><h3>💯 Health Score</h3><h1>{score}</h1></div>", unsafe_allow_html=True)
-    col2.markdown(f"<div class='card'><h3>💰 Profitability</h3><h1>{profit_margin:.2f}</h1></div>", unsafe_allow_html=True)
-    col3.markdown(f"<div class='card'><h3>⚖️ Risk Level</h3><h1>{de_ratio:.2f}</h1></div>", unsafe_allow_html=True)
+    c1.markdown(f"<div class='card'><h3>💯 Health Score</h3><h1>{score}</h1></div>", unsafe_allow_html=True)
+    c2.markdown(f"<div class='card'><h3>💰 Profitability</h3><h1>{profit_margin:.2f}</h1></div>", unsafe_allow_html=True)
+    c3.markdown(f"<div class='card'><h3>⚖️ Risk</h3><h1>{de_ratio:.2f}</h1></div>", unsafe_allow_html=True)
 
     st.progress(score)
 
-    st.subheader("📂 Detailed Ratio Analysis (Tap to Expand)")
-
-    # -------- Helper for status --------
-    def get_status(value, good, moderate):
-      if value >= good:
-          return "🟢 Strong"
-      elif value >= moderate:
-          return "🟡 Moderate"
-      else:
-          return "🔴 Weak"
-
-    # -------- LIQUIDITY --------
-    with st.expander("💧 Liquidity Analysis"):
-    
-    cr = current_ratio
-    qr = safe_div((ca - data.get("Inventory",0)), cl)
-
-    st.markdown("**Current Ratio**")
-    st.write("Formula: Current Assets / Current Liabilities")
-    st.write(f"Value: {cr:.2f} | Status: {get_status(cr, 1.5, 1)}")
-
-    st.markdown("**Quick Ratio**")
-    st.write("Formula: (Current Assets - Inventory) / Current Liabilities")
-    st.write(f"Value: {qr:.2f} | Status: {get_status(qr, 1, 0.5)}")
-
-
-    # -------- PROFITABILITY --------
-    with st.expander("💰 Profitability Analysis"):
-    
-    npm = profit_margin
-    roe = safe_div(profit, equity)
-
-    st.markdown("**Net Profit Margin**")
-    st.write("Formula: Net Profit / Revenue")
-    st.write(f"Value: {npm:.2f} | Status: {get_status(npm, 0.1, 0.05)}")
-
-    st.markdown("**Return on Equity (ROE)**")
-    st.write("Formula: Net Profit / Equity")
-    st.write(f"Value: {roe:.2f} | Status: {get_status(roe, 0.15, 0.08)}")
-
-
-    # -------- LEVERAGE --------
-    with st.expander("⚖️ Leverage Analysis"):
-    
-    d_e = de_ratio
-    debt_ratio = safe_div(debt, data.get("Total Assets",1))
-
-    st.markdown("**Debt to Equity Ratio**")
-    st.write("Formula: Total Debt / Equity")
-    st.write(f"Value: {d_e:.2f} | Status: {get_status(1/d_e if d_e!=0 else 0, 1, 0.5)}")
-
-    st.markdown("**Debt Ratio**")
-    st.write("Formula: Total Debt / Total Assets")
-    st.write(f"Value: {debt_ratio:.2f} | Status: {get_status(1-debt_ratio, 0.6, 0.3)}")
-
-    # ---------------- MOOD ----------------
+    # ---------- STATUS ----------
     if score > 70:
-        mood = "😎 Strong & Investor Friendly"
+        mood = "😎 Strong"
     elif score > 40:
-        mood = "🙂 Stable"
+        mood = "🙂 Moderate"
     else:
         mood = "😬 Risky"
 
     st.write(f"### 📌 Company Status: {mood}")
 
-    # ---------------- RADAR CHART ----------------
+    # ---------- RADAR ----------
     st.subheader("📊 Performance Overview")
 
-    liquidity_score = min(current_ratio * 40, 100)
-    profitability_score = min(profit_margin * 500, 100)
-    leverage_score = 100 - min(de_ratio * 40, 100)
-    efficiency_score = 60
-    market_score = 50
-
     categories = ["Liquidity", "Profitability", "Leverage", "Efficiency", "Market"]
-    scores = [liquidity_score, profitability_score, leverage_score, efficiency_score, market_score]
+    scores = [
+        min(current_ratio * 40, 100),
+        min(profit_margin * 500, 100),
+        100 - min(de_ratio * 40, 100),
+        60,
+        50
+    ]
 
     fig = go.Figure()
-
-    fig.add_trace(go.Scatterpolar(
-        r=scores,
-        theta=categories,
-        fill='toself'
-    ))
-
-    fig.update_layout(
-        polar=dict(radialaxis=dict(visible=True, range=[0, 100])),
-        showlegend=False
-    )
-
+    fig.add_trace(go.Scatterpolar(r=scores, theta=categories, fill='toself'))
+    fig.update_layout(polar=dict(radialaxis=dict(range=[0, 100])))
     st.plotly_chart(fig, use_container_width=True)
 
-    # ---------------- INSIGHT CARDS ----------------
-    st.subheader("🤖 AI Insights Summary")
+    # ---------- INSIGHTS ----------
+    st.subheader("🤖 Insights")
 
     col1, col2, col3 = st.columns(3)
 
-    # Strengths
-    strengths = []
-    if current_ratio > 1.5:
-        strengths.append("Strong liquidity position")
-    if profit_margin > 0.1:
-        strengths.append("Healthy profitability")
-    if de_ratio < 1:
-        strengths.append("Low financial risk")
-
     with col1:
         st.markdown("### ✅ Strengths")
-        if strengths:
-            for s in strengths:
-                st.success(s)
-        else:
-            st.info("No major strengths")
-
-    # Risks
-    risks = []
-    if current_ratio < 1:
-        risks.append("Liquidity risk")
-    if de_ratio > 2:
-        risks.append("High leverage risk")
-    if profit_margin < 0.05:
-        risks.append("Low profitability")
+        if current_ratio > 1.5:
+            st.success("Strong liquidity")
+        if profit_margin > 0.1:
+            st.success("Healthy profitability")
+        if de_ratio < 1:
+            st.success("Low financial risk")
 
     with col2:
-        st.markdown("### ⚠️ Watchouts")
-        if risks:
-            for r in risks:
-                st.warning(r)
-        else:
-            st.success("No major risks")
-
-    # Suggestions
-    suggestions = []
-    if current_ratio < 1:
-        suggestions.append("Improve short-term asset management")
-    if de_ratio > 2:
-        suggestions.append("Reduce debt dependency")
-    if profit_margin < 0.05:
-        suggestions.append("Improve cost efficiency")
+        st.markdown("### ⚠️ Risks")
+        if current_ratio < 1:
+            st.warning("Liquidity issue")
+        if de_ratio > 2:
+            st.warning("High debt")
+        if profit_margin < 0.05:
+            st.warning("Low profitability")
 
     with col3:
         st.markdown("### 💡 Suggestions")
-        if suggestions:
-            for s in suggestions:
-                st.info(s)
-        else:
-            st.success("Operations look optimized")
+        if current_ratio < 1:
+            st.info("Improve short-term assets")
+        if de_ratio > 2:
+            st.info("Reduce debt")
+        if profit_margin < 0.05:
+            st.info("Control costs")
 
-    # ---------------- SUMMARY ----------------
+    # ---------- EXPANDABLE RATIOS ----------
+    st.subheader("📂 Detailed Analysis")
+
+    with st.expander("💧 Liquidity"):
+        st.write(f"Current Ratio = CA / CL → {current_ratio:.2f} ({status(current_ratio,1.5,1)})")
+        st.write(f"Quick Ratio = (CA - Inventory) / CL → {quick_ratio:.2f} ({status(quick_ratio,1,0.5)})")
+
+    with st.expander("💰 Profitability"):
+        st.write(f"Profit Margin = Profit / Revenue → {profit_margin:.2f} ({status(profit_margin,0.1,0.05)})")
+        st.write(f"ROE = Profit / Equity → {roe:.2f} ({status(roe,0.15,0.08)})")
+
+    with st.expander("⚖️ Leverage"):
+        st.write(f"Debt/Equity → {de_ratio:.2f}")
+        st.write(f"Debt Ratio → {debt_ratio:.2f}")
+
+    # ---------- SUMMARY ----------
     summary = f"""
 Financial Health Score: {score}
-Company Status: {mood}
-
+Status: {mood}
 Liquidity: {'Strong' if current_ratio>1 else 'Weak'}
 Profitability: {'Healthy' if profit_margin>0.1 else 'Moderate'}
-Leverage: {'Controlled' if de_ratio<2 else 'High Risk'}
+Leverage: {'Controlled' if de_ratio<2 else 'High'}
 """
 
-    st.subheader("🧾 Executive Summary")
+    st.subheader("🧾 Summary")
     st.success(summary)
 
-    # ---------------- PDF ----------------
+    # ---------- PDF ----------
     def create_pdf(text):
-        temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".pdf")
-        doc = SimpleDocTemplate(temp_file.name)
+        file = tempfile.NamedTemporaryFile(delete=False, suffix=".pdf")
+        doc = SimpleDocTemplate(file.name)
         styles = getSampleStyleSheet()
 
         content = []
@@ -278,9 +221,9 @@ Leverage: {'Controlled' if de_ratio<2 else 'High Risk'}
             content.append(Spacer(1, 10))
 
         doc.build(content)
-        return temp_file.name
+        return file.name
 
-    pdf_file = create_pdf(summary)
+    pdf = create_pdf(summary)
 
-    with open(pdf_file, "rb") as f:
-        st.download_button("📄 Download PDF Report", f, file_name="Financial_Report.pdf")
+    with open(pdf, "rb") as f:
+        st.download_button("📄 Download PDF", f, file_name="report.pdf")
