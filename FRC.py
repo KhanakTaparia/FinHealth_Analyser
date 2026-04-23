@@ -240,3 +240,7 @@ def create_pdf():
 
     doc.build(content)
     return file.name
+  pdf = create_pdf(summary)
+
+    with open(pdf, "rb") as f:
+        st.download_button("📄 Download PDF", f, file_name="report.pdf")
