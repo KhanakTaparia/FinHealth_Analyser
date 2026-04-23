@@ -210,20 +210,33 @@ Leverage: {'Controlled' if de_ratio<2 else 'High'}
     st.success(summary)
 
     # ---------- PDF ----------
-    def create_pdf(text):
-        file = tempfile.NamedTemporaryFile(delete=False, suffix=".pdf")
-        doc = SimpleDocTemplate(file.name)
-        styles = getSampleStyleSheet()
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
+from reportlab.lib.styles import getSampleStyleSheet
 
-        content = []
-        for line in text.split("\n"):
-            content.append(Paragraph(line, styles["Normal"]))
-            content.append(Spacer(1, 10))
+def create_pdf():
+    file = tempfile.NamedTemporaryFile(delete=False, suffix=".pdf")
+    doc = SimpleDocTemplate(file.name)
+    styles = getSampleStyleSheet()
 
-        doc.build(content)
-        return file.name
+    content = []
 
-    pdf = create_pdf(summary)
+    content.append(Paragraph("ChimeK Financial Report", styles["Title"]))
+    content.append(Spacer(1,20))
 
-    with open(pdf, "rb") as f:
-        st.download_button("📄 Download PDF", f, file_name="report.pdf")
+    content.append(Paragraph(f"Health Score: {score}", styles["Normal"]))
+    content.append(Paragraph(f"Status: {mood}", styles["Normal"]))
+    content.append(Spacer(1,10))
+
+    content.append(Paragraph("Key Ratios:", styles["Heading2"]))
+    content.append(Paragraph(f"Current Ratio: {current_ratio:.2f}", styles["Normal"]))
+    content.append(Paragraph(f"Profit Margin: {profit_margin:.2f}", styles["Normal"]))
+    content.append(Paragraph(f"Debt/Equity: {de_ratio:.2f}", styles["Normal"]))
+    content.append(Spacer(1,10))
+
+    content.append(Paragraph("Insights:", styles["Heading2"]))
+
+    for i in insights:
+        content.append(Paragraph(f"- {i}", styles["Normal"]))
+
+    doc.build(content)
+    return file.name
