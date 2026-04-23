@@ -109,12 +109,12 @@ if data:
 
     # -------- Helper for status --------
     def get_status(value, good, moderate):
-    if value >= good:
-        return "🟢 Strong"
-    elif value >= moderate:
-        return "🟡 Moderate"
-    else:
-        return "🔴 Weak"
+      if value >= good:
+          return "🟢 Strong"
+      elif value >= moderate:
+          return "🟡 Moderate"
+      else:
+          return "🔴 Weak"
 
     # -------- LIQUIDITY --------
     with st.expander("💧 Liquidity Analysis"):
